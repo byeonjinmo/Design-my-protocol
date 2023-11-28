@@ -54,6 +54,11 @@ while True:
     elif code.upper() == "TO":
         to_Msg = code + SEP + myID + SEP + tokens[1] + SEP + tokens[2] + SEP
         s.send(to_Msg.encode())
+    elif code.upper() == "FILTER":
+        keyword = input("Enter the keyword to filter: ")
+        to_Msg = code + SEP + myID + SEP + keyword + SEP
+        s.send(to_Msg.encode())
+
     to_Msg = ''  # Initialization
 
 # close the socket
