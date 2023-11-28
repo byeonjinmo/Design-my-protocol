@@ -1,11 +1,9 @@
 # server_thread dictionary exit
 # 클라이언트로 부터 exit 문자열이 올때까지 계속 수신
 # exit 문자열을 수신하면 while 문 탈출하여 연결종료
-
 from socket import *
 from select import *
 from threading import Thread, Event
-
 
 event = Event()  # 키보드 입력받으면 키보드 종료시키기 위한 이벤트
 HOST = ''
