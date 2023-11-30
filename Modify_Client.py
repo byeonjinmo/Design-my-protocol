@@ -65,6 +65,14 @@ while True:
     elif code == "FILTER":
         to_Msg = code + SEP + tokens[1] + SEP + tokens[2] + SEP
         s.send(to_Msg.encode())
+    elif code == "FM":    # 필터링 수정
+        to_Msg = "FM" + SEP + tokens[1] + SEP + tokens[2] + SEP + tokens[3] + SEP
+        s.send(to_Msg.encode())
+    elif code == "FD":    # 필터링 삭제
+        to_Msg = code + SEP + tokens[1] + SEP + tokens[2] + SEP
+        s.send(to_Msg.encode())
+    else:
+        print("형식이_올바르지_않습니다.")
     to_Msg = ''  # Initialization
 
 # close the socket
