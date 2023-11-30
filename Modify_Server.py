@@ -17,7 +17,7 @@ clientSockets = {}
 # 각 소켓에 대한 클라이언트 ID 저장
 clientIDs = {}
 # 필터링 키워드 저장 사전 (클라이언트id와 연결되어 저장)
-filter_keywords = {}
+filter_keywords = defaultdict(list)
 
 # 필터링된 키워드 집합 (모든 필터링된 단어의 저장 헷갈리지 마라 진모야)
 filtered_keywords = set()
@@ -52,12 +52,15 @@ def msg_proc(cs, m):
             toMsg = tokens[3]
             # 메시지 필터링: 수신자의 필터링 키워드를 적용
             if toID in filter_keywords:
-                toMsg = filter_message(toMsg, filter_keywords[toID])
-            print(f"1to1: From {fromID} To {toID} Message {toMsg}")
+                for keyword in filter_keywords[toID]:
+                    toMsg = filter_message(toMsg, keyword)
             # 필터링된 메시지를 수신자에게 전송
-            toSocket = clientSockets.get(toID)
-            toSocket.send(f"TO:{fromID}:{toMsg}".encode())  # 수정된 메시지를 전송
-            cs.send("Success:1to1".encode())
+            if toID in clientSockets:
+                toSocket = clientSockets[toID]
+                toSocket.send(f"TO:{fromID}:{toMsg}".encode())
+                cs.send("Success:1to1".encode())
+            else:
+                cs.send("Error:RecipientNotFound".encode())
             return True
 
         elif (code.upper() == "BR"):
@@ -93,50 +96,78 @@ def msg_proc(cs, m):
                 # 이미 설정된 필터링 키워드일 경우
                 cs.send(f"에러_이미_필터링_적용된_키워드입니다._{keyword}".encode())
                 print(f"FilterAlreadySet {fromID}: {keyword}")
-            else:
-                # 필터링 키워드 유효성 검사 (예: 숫자, 문자 유형 등)
-                if not all(char.isalpha() or char.isspace() for char in keyword):
-                    cs.send("에러2_한글,영어만 입력해주세요.".encode())
-                    return True
-                # 필터링 키워드 업데이트
-                filter_keywords[fromID] = keyword
-                filtered_keywords.add(keyword)  # 여기에 필터링 키워드를 추가
-                print(f"Filter set by {fromID}: {keyword}")  # 필터링 설정 로그
-                success_message = f"Success:Filter_Set_By_{fromID}_Keyword_{keyword}"
-                for socket in clientSockets.values():
-                    socket.send(success_message.encode())
-
-        elif (code.upper() == "FM"):
-            fromID = tokens[1]
-            old_keyword = tokens[2]
-            new_keyword = tokens[3]
-
-            # 클라이언트 ID 확인 및 기존 키워드 일치 여부 확인
-            actualID = clientIDs.get(cs)
-            if actualID != fromID or filter_keywords.get(fromID) != old_keyword:
-                cs.send("에러_본인_'기존'_필터링만_수정_가능".encode())
+            # 필터링 키워드 유효성 검사 (예: 숫자, 문자 유형 등)
+            if not all(char.isalpha() or char.isspace() for char in keyword):
+                cs.send("에러2_한글,영어만 입력해주세요.".encode())
                 return True
-            else:
-                # 필터링 키워드 유효성 검사 (예: 숫자, 문자 유형 등)
-                if not all(char.isalpha() or char.isspace() for char in new_keyword):
-                    cs.send("에러2_한글,영어만 입력해주세요.".encode())
-                    return True
             # 필터링 키워드 업데이트
-            filter_keywords[fromID] = new_keyword
-            cs.send(f"Success:FilterModified_{new_keyword}".encode())
-            return True
+            filter_keywords[fromID].append(keyword)
+            filtered_keywords.add(keyword)  # 여기에 필터링 키워드를 추가
+            print(f"Filter set by {fromID}: {keyword}")  # 필터링 설정 로그
+            success_message = f"Success:Filter_Set_By_{fromID}_Keyword_{keyword}"
+            for socket in clientSockets.values():
+                socket.send(success_message.encode())
+
+
+        # FM 명령 처리 부분
+
+        elif code == "FM":
+
+            if len(tokens) < 4:
+
+                print("FM 명령 형식이 잘못되었습니다. 다시 시도해주세요.")
+
+            else:
+
+                fromID = tokens[1]
+
+                candidate_old_keyword = tokens[2]
+
+                new_keyword = tokens[3]
+
+                # 클라이언트 ID 확인 및 기존 키워드 존재 여부 확인
+
+                actualID = clientIDs.get(cs)
+
+                if actualID != fromID:
+
+                    cs.send("에러_본인_ID만_사용_가능".encode())
+
+                elif candidate_old_keyword not in filter_keywords[fromID]:
+
+                    cs.send("에러_해당_필터링_키워드_존재_안함".encode())
+
+                else:
+
+                    # 필터링 키워드 유효성 검사
+
+                    if not all(char.isalpha() or char.isspace() for char in new_keyword):
+
+                        cs.send("에러2_한글,영어만 입력해주세요.".encode())
+
+                    else:
+
+                        # 기존 키워드를 새 키워드로 교체
+
+                        old_keyword_index = filter_keywords[fromID].index(candidate_old_keyword)
+
+                        filter_keywords[fromID][old_keyword_index] = new_keyword
+
+                        cs.send(f"Success:FilterModified_{new_keyword}".encode())
         elif (code.upper() == "FD"):
             fromID = tokens[1]
             keyword_to_delete = tokens[2]
 
             # 클라이언트 ID 확인 및 키워드 삭제
             actualID = clientIDs.get(cs)
-            if actualID != fromID or filter_keywords.get(fromID) != keyword_to_delete:
+            if actualID != fromID:
+                cs.send("Error:UnauthorizedAction".encode())
+            elif keyword_to_delete not in filter_keywords[fromID]:
                 cs.send("Error:InvalidFilterDeletion".encode())
-                return True
-            # 필터링 키워드 삭제
-            del filter_keywords[fromID]
-            cs.send(f"Success:FilterDeleted_{keyword_to_delete}".encode())
+            else:
+                # 필터링 키워드 삭제
+                filter_keywords[fromID].remove(keyword_to_delete)
+                cs.send(f"Success:FilterDeleted_{keyword_to_delete}".encode())
 
         elif (code.upper() == "QUIT"):
             fromID = tokens[1]
