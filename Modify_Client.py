@@ -50,27 +50,47 @@ while True:
     msg =  input()
     tokens = msg.split(SEP)
     code = tokens[0]
-    # a way to exit the program
-    if code.upper() == 'Q':
-        to_Msg = "Quit"+SEP+myID+SEP
+    # 명령어별 입력 형식 검증
+    if code.upper() == "BR":
+        if len(tokens) < 2:
+            print("BR 명령 형식이 잘못되었습니다. 다시 시도해주세요.")
+        else:
+            to_Msg = code + SEP + myID + SEP + tokens[1] + SEP
+            s.send(to_Msg.encode())
+
+    elif code.upper() == "TO":
+        if len(tokens) < 3:
+            print("TO 명령 형식이 잘못되었습니다. 다시 시도해주세요.")
+        else:
+            to_Msg = code + SEP + myID + SEP + tokens[1] + SEP + tokens[2] + SEP
+            s.send(to_Msg.encode())
+
+    elif code == "FILTER":
+        if len(tokens) < 3:
+            print("FILTER 명령 형식이 잘못되었습니다. 다시 시도해주세요.")
+        else:
+            to_Msg = code + SEP + myID + SEP + tokens[1] + SEP + tokens[2] + SEP
+            s.send(to_Msg.encode())
+
+    elif code == "FM":
+        if len(tokens) < 4:
+            print("FM 명령 형식이 잘못되었습니다. 다시 시도해주세요.")
+        else:
+            to_Msg = code + SEP + myID + SEP + tokens[1] + SEP + tokens[2] + SEP + tokens[3] + SEP
+            s.send(to_Msg.encode())
+
+    elif code == "FD":
+        if len(tokens) < 3:
+            print("FD 명령 형식이 잘못되었습니다. 다시 시도해주세요.")
+        else:
+            to_Msg = code + SEP + myID + SEP + tokens[1] + SEP + tokens[2] + SEP
+            s.send(to_Msg.encode())
+
+    elif code.upper() == 'Q':
+        to_Msg = "Quit" + SEP + myID + SEP
         s.send(to_Msg.encode())
         break
-    elif code.upper()  == "BR" :
-        to_Msg = code + SEP + myID + SEP + tokens[1] + SEP
-        s.send(to_Msg.encode())
-    elif code.upper() == "TO":
-        to_Msg = code + SEP + myID + SEP + tokens[1] + SEP + tokens[2] + SEP
-        s.send(to_Msg.encode())
-        # Additional code for FILTER functionality
-    elif code == "FILTER":
-        to_Msg = code + SEP + tokens[1] + SEP + tokens[2] + SEP
-        s.send(to_Msg.encode())
-    elif code == "FM":    # 필터링 수정
-        to_Msg = "FM" + SEP + tokens[1] + SEP + tokens[2] + SEP + tokens[3] + SEP
-        s.send(to_Msg.encode())
-    elif code == "FD":    # 필터링 삭제
-        to_Msg = code + SEP + tokens[1] + SEP + tokens[2] + SEP
-        s.send(to_Msg.encode())
+
     else:
         print("형식이_올바르지_않습니다.")
     to_Msg = ''  # Initialization
