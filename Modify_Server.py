@@ -108,51 +108,28 @@ def msg_proc(cs, m):
             for socket in clientSockets.values():
                 socket.send(success_message.encode())
 
-
         # FM 명령 처리 부분
-
         elif code == "FM":
-
             if len(tokens) < 4:
-
                 print("FM 명령 형식이 잘못되었습니다. 다시 시도해주세요.")
-
             else:
-
                 fromID = tokens[1]
-
                 candidate_old_keyword = tokens[2]
-
                 new_keyword = tokens[3]
-
                 # 클라이언트 ID 확인 및 기존 키워드 존재 여부 확인
-
                 actualID = clientIDs.get(cs)
-
                 if actualID != fromID:
-
                     cs.send("에러_본인_ID만_사용_가능".encode())
-
                 elif candidate_old_keyword not in filter_keywords[fromID]:
-
                     cs.send("에러_해당_필터링_키워드_존재_안함".encode())
-
                 else:
-
                     # 필터링 키워드 유효성 검사
-
                     if not all(char.isalpha() or char.isspace() for char in new_keyword):
-
                         cs.send("에러2_한글,영어만 입력해주세요.".encode())
-
                     else:
-
                         # 기존 키워드를 새 키워드로 교체
-
                         old_keyword_index = filter_keywords[fromID].index(candidate_old_keyword)
-
                         filter_keywords[fromID][old_keyword_index] = new_keyword
-
                         cs.send(f"Success:FilterModified_{new_keyword}".encode())
         elif (code.upper() == "FD"):
             fromID = tokens[1]
@@ -197,14 +174,11 @@ def client_acpt():
     # 소켓 생성
     global serverSocket
     serverSocket = socket(AF_INET, SOCK_STREAM)
-
     # 소켓 주소 정보 할당
     serverSocket.bind(ADDR)
-
     # 연결 수신 대기 상태
     serverSocket.listen(10)
     print('대기')
-
     # 연결 수락
     while True:
         if event.is_set():  # event 발생하면 스레드 종료
