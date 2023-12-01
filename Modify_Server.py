@@ -189,7 +189,6 @@ def client_acpt():
         tc.daemon = True
         tc.start()
 
-
 ta = Thread(target=client_acpt)
 ta.daemon = True
 ta.start()
