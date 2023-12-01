@@ -45,22 +45,25 @@ def msg_proc(cs, m):
                 cs.send("Success:Reg_ID".encode())
                 return True
 
+
         elif (code.upper() == "TO"):
             print(f"TO command processed: {m}")
             fromID = tokens[1]
             toID = tokens[2]
             toMsg = tokens[3]
-            # 메시지 필터링: 수신자의 필터링 키워드를 적용
-            if toID in filter_keywords:
-                for keyword in filter_keywords[toID]:
-                    toMsg = filter_message(toMsg, keyword)
-            # 필터링된 메시지를 수신자에게 전송
+            # 수신자가 clientSockets에 존재하는지 확인
             if toID in clientSockets:
+                # 모든 필터링 키워드를 메시지에 적용
+                for keyword_list in filter_keywords.values():
+                    for keyword in keyword_list:
+                        toMsg = filter_message(toMsg, keyword)
+            # 필터링된 메시지를 수신자에게 전송
                 toSocket = clientSockets[toID]
                 toSocket.send(f"TO:{fromID}:{toMsg}".encode())
                 cs.send("Success:1to1".encode())
             else:
-                cs.send("Error:RecipientNotFound".encode())
+                # 존재하지 않는 수신자에 대한 오류 메시지 전송
+                cs.send(f"Error:RecipientNotFound_{toID}".encode())
             return True
 
         elif (code.upper() == "BR"):

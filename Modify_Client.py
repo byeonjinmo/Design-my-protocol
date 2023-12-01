@@ -69,7 +69,7 @@ while True:
         if len(tokens) < 3:
             print("FILTER 명령 형식이 잘못되었습니다. 다시 시도해주세요.")
         else:
-            to_Msg = code + SEP + myID + SEP + tokens[1] + SEP + tokens[2] + SEP
+            to_Msg = code + SEP + tokens[1] + SEP + tokens[2] + SEP
             s.send(to_Msg.encode())
 
     elif code == "FM":
