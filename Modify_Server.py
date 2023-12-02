@@ -18,7 +18,6 @@ clientSockets = {}
 clientIDs = {}
 # 필터링 키워드 저장 사전 (클라이언트id와 연결되어 저장)
 filter_keywords = defaultdict(list)
-
 # 필터링된 키워드 집합 (모든 필터링된 단어의 저장 헷갈리지 마라 진모야)
 filtered_keywords = set()
 
