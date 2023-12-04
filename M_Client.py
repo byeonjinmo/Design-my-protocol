@@ -116,7 +116,6 @@ def parse_custom_response(response):
         parsed_data[key] = value
     return parsed_data
 
-
 def listen_for_messages():
     while True:
         message = s.recv(BUF_SIZE).decode()
