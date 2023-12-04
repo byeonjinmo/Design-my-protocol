@@ -1,10 +1,10 @@
 #client ID BR TO Q
 import socket
 from threading import Thread
-from datetime import datetime
+import time
 
 # server's IP address
-# if the server is not on this machine, 
+# if the server is not on this machine,
 # put the private (network) IP address (e.g 192.168.1.2)
 SERVER_HOST = "127.0.0.1"
 SERVER_PORT = 5001 # server's port
@@ -32,21 +32,30 @@ t = Thread(target=listen_for_messages)
 t.daemon = True
 # start the thread
 t.start()
-
 # register of my ID to the Server
+while True:
+    print("필터링 설정된 단어가 있을 수 있습니다.먼저 FIRST_SF(SHOW_FILTER_KEYWORD)를 입력하여 확인해주세요.")
+    msg = input()
+    tokens = msg.split(SEP)
+    code = tokens[0]
+    if code.upper() == "FIRST_SF":
+        if len(tokens) < 1:
+            print("FIRST_SF 명령 형식이 잘못되었습니다. 다시 시도해주세요.")
+        else:
+            to_Msg = code  + SEP
+            s.send(to_Msg.encode())
+            break
 
 while True:
+    # input message we want to send to the server
+    time.sleep(1)  # 1초 대기
     myID = input("Enter your ID: ")
-    to_Msg = "ID"+SEP+myID+SEP
+    to_Msg = "ID" + SEP + myID + SEP
     s.send(to_Msg.encode())
     # 성공 메시지를 확인하고 루프 탈출
     if "Success:Reg_ID":
         break
-    #else:
-        #print("ID registration failed. Please try again.")
-
 while True:
-    # input message we want to send to the server
     msg =  input()
     tokens = msg.split(SEP)
     code = tokens[0]
@@ -90,9 +99,13 @@ while True:
         to_Msg = "Quit" + SEP + myID + SEP
         s.send(to_Msg.encode())
         break
+    if code.upper() == "SF":
+        if len(tokens) < 2:
+            print("SF 명령 형식이 잘못되었습니다. 다시 시도해주세요.")
+        else:
+            to_Msg = code + SEP + tokens[1] + SEP
+            s.send(to_Msg.encode())
 
-    else:
-        print("형식이_올바르지_않습니다.")
     to_Msg = ''  # Initialization
 
 def parse_custom_response(response):

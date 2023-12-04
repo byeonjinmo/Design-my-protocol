@@ -36,10 +36,14 @@ def msg_proc(cs, m):
             if any(keyword in clientID for keyword in filtered_keywords):
                 matched_keywords = [keyword for keyword in filtered_keywords if keyword in clientID]
                 # 매칭된 키워드 목록으로 에러 메시지 구성
-                error_message = "Filtered keywords: " + ", ".join(matched_keywords)
+                error_message = "Filtered_keywords: " + ", ".join(matched_keywords)
                 send_c_res(cs, status="Error", action="Client_input_Error", message=f"{error_message}_Please press Q to exit and try again")
                 return True
-
+            # 중복 아이디 방지
+            elif clientID in clientSockets:
+                send_c_res(cs, status="Error", action="Duplicate_ID",
+                           message="This_ID_is_already_in_use._Please_try_a_different_one.")
+                return True
             else:
                 print(f"Received message: {m}")  # 받은 메시지 로그 출력
                 # ID 등록 및 클라이언트 소켓과 ID 매핑
@@ -47,8 +51,6 @@ def msg_proc(cs, m):
                 clientIDs[cs] = clientID
                 send_c_res(cs, status="Success", action="ID_Registration", client_id=clientID)
                 return True
-
-
         elif (code.upper() == "TO"):
             print(f"command TO processed: {m}")
             fromID = tokens[1]
@@ -94,19 +96,16 @@ def msg_proc(cs, m):
             if actualID != fromID:
                 send_c_res(cs, status="Error", action="Other_user_ID_value", message=f"Only_own_ID_can_be_used")
                 print(f"Other_people's_ID_value{fromID}")
-                return True
             # 필터링 키워드 중복 검사
             elif keyword in filter_keywords[fromID]:    # 여긴 본인이 지정한 필터가 아니여도 적용
                 # 이미 설정된 필터링 키워드일 경우
                 send_c_res(cs, status="Error", action="Filter_Already_Set",
                            message=f"Keyword_already_filtered: {keyword}")
                 print(f"Filter_Already_Set {fromID}: {keyword}")
-                return True
             else:
                 # 필터링 키워드 유효성 검사 (예: 숫자, 문자 유형 등)
                 if not all(char.isalpha() or char.isspace() for char in keyword):
                     send_c_res(cs, status="Error", action="Invalid_Keyword", message="Please_enter_only_letters")
-                    return True
                 # 필터링 키워드 업데이트
                 filter_keywords[fromID].append(keyword)
                 filtered_keywords.add(keyword)  # 여기에 필터링 키워드를 추가
@@ -128,8 +127,10 @@ def msg_proc(cs, m):
                 return True
             elif old_keyword not in filtered_keywords:
                 send_c_res(cs, status="Error", action="Keyword_Not_Found", message="filter_keyword_not_found")
+                return True
             elif old_keyword not in filter_keywords[fromID]:
                 send_c_res(cs, status="Error", action="Not_your_keywords.", message="Not_a_keyword_you_specified")
+                return True
             else:
                 # 필터링 키워드 유효성 검사
                 if not all(char.isalpha() or char.isspace() for char in new_keyword):
@@ -154,21 +155,66 @@ def msg_proc(cs, m):
                 return True
             elif keyword not in filtered_keywords:
                 send_c_res(cs, status="Error", action="Keyword_Not_Found", message="filter_keyword_not_found")
+                return True
             elif keyword not in filter_keywords[fromID]:
                 send_c_res(cs, status="Error", action="Not_your_keywords.", message="Not_a_keyword_you_specified")
+                return True
             else:
                 # 필터링 키워드 삭제
                 filter_keywords[fromID].remove(keyword)
                 filtered_keywords.remove(keyword)
                 send_c_res(cs, status="Success", action="FilterDeleted",
                            message=f"Filter keyword deleted: {keyword}")
-
+        elif (code.upper() == "FIRST_SF"):
+            print(f"Processing FIRST_SF command: {m}")
+            if filtered_keywords:
+                # 집합에 값이 있는 경우, 모든 필터링된 키워드를 문자열로 변환
+                all_filters = ', '.join(filtered_keywords)
+                send_c_res(cs, status="Success", action="Show_All_Filters",
+                            message=f"Current_filters: {all_filters}")
+                return True
+            else:
+                # 집합이 비어있는 경우, 에러 메시지 전송
+                send_c_res(cs, status="Error", action="No_Filters", message="No_filters_set")
+                return True
+        elif (code.upper() == "SF"):
+            print(f"Processing SF command: {m}")
+            fromID = tokens[1]
+            actualID = clientIDs.get(cs)
+            if actualID != fromID:
+                send_c_res(cs, status="Error", action="Other_user_ID_value", message=f"Only_own_ID_can_be_used")
+                print(f"Other_people's_ID_value{fromID}")
+                return True
+            # filtered_keywords 집합이 비어있는지 확인
+            if filtered_keywords:
+                # 집합에 값이 있는 경우, 모든 필터링된 키워드를 문자열로 변환
+                all_filters = ', '.join(filtered_keywords)
+                send_c_res(cs, status="Success", action="Show_All_Filters",
+                            message=f"Current_filters: {all_filters}")
+                return True
+            else:
+                # 집합이 비어있는 경우, 에러 메시지 전송
+                send_c_res(cs, status="Error", action="No_Filters", message="No_filters_set")
+                return True
         elif (code.upper() == "QUIT"):
             fromID = tokens[1]
-            clientSockets.pop(fromID)
-            cs.close()
-            print("Disconnected:{}", fromID)
+            # 클라이언트 소켓 및 ID 삭제
+            clientSocket = clientSockets.pop(fromID, None)
+            if clientSocket:
+                clientIDs.pop(clientSocket, None)
+            #클라이언트가 설정한 필터링 키워드 삭제
+            if fromID in filter_keywords:
+                # 삭제할 필터링 키워드 가져오기
+                keywords_to_remove = filter_keywords.pop(fromID, [])
+                # filtered_keywords에서 해당 키워드 제거
+                for keyword in keywords_to_remove:
+                    if all(keyword not in kwds for kwds in filter_keywords.values()):
+                        filtered_keywords.discard(keyword)
+                if clientSocket:
+                    clientSocket.close()
+                print("Disconnected: {}", fromID)
             return False
+
     except Exception as e:
         print(f"Error:{e}")
 
