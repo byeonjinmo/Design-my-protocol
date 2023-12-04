@@ -55,7 +55,7 @@ while True:
         if len(tokens) < 2:
             print("BR 명령 형식이 잘못되었습니다. 다시 시도해주세요.")
         else:
-            to_Msg = code + SEP + myID + SEP + tokens[1] + SEP
+            to_Msg = code + SEP + tokens[1] + SEP
             s.send(to_Msg.encode())
 
     elif code.upper() == "TO":
@@ -76,14 +76,14 @@ while True:
         if len(tokens) < 4:
             print("FM 명령 형식이 잘못되었습니다. 다시 시도해주세요.")
         else:
-            to_Msg = code + SEP + myID + SEP + tokens[1] + SEP + tokens[2] + SEP + tokens[3] + SEP
+            to_Msg = code + SEP + tokens[1] + SEP + tokens[2] + SEP + tokens[3] + SEP
             s.send(to_Msg.encode())
 
     elif code == "FD":
         if len(tokens) < 3:
             print("FD 명령 형식이 잘못되었습니다. 다시 시도해주세요.")
         else:
-            to_Msg = code + SEP + myID + SEP + tokens[1] + SEP + tokens[2] + SEP
+            to_Msg = code +  SEP + tokens[1] + SEP + tokens[2] + SEP
             s.send(to_Msg.encode())
 
     elif code.upper() == 'Q':
@@ -94,6 +94,29 @@ while True:
     else:
         print("형식이_올바르지_않습니다.")
     to_Msg = ''  # Initialization
+
+def parse_custom_response(response):
+    parsed_data = {}
+    elements = response.split(";")
+    for element in elements:
+        key, value = element.split("=")
+        parsed_data[key] = value
+    return parsed_data
+
+
+def listen_for_messages():
+    while True:
+        message = s.recv(BUF_SIZE).decode()
+        parsed_response = parse_custom_response(message)
+
+        # 파싱된 응답에서 정보 추출
+        status = parsed_response.get("status")
+        action = parsed_response.get("action")
+        additional_message = parsed_response.get("message")
+
+        # 화면에 출력
+        print(f"Status: {status}, Action: {action}, Message: {additional_message}")
+
 
 # close the socket
 s.close()

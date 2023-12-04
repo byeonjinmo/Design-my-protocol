@@ -16,9 +16,9 @@ ADDR = (HOST, PORT)
 clientSockets = {}
 # 각 소켓에 대한 클라이언트 ID 저장
 clientIDs = {}
-# 필터링 키워드 저장 사전 (클라이언트id와 연결되어 저장)
+# 필터링 키워드 저장 사전 (클라이언트id와 연결되어 저장) 수정 삭제는 본인이 지정한 키워드만 다룰 수 있기 위함
 filter_keywords = defaultdict(list)
-# 필터링된 키워드 집합 (모든 필터링된 단어의 저장 헷갈리지 마라 진모야)
+# 필터링된 키워드 집합 (모든 필터링된 단어의 저장) 그 외의 통신은 누구의 필터링이건 상관없이 적용되야하기 때문에 별도의 필터링 저장 공간 필요
 filtered_keywords = set()
 
 # 필터링 되는 대처 표현
@@ -30,10 +30,14 @@ def msg_proc(cs, m):
     code = tokens[0]
     try:
         if (code.upper() == "ID"):
+            print(f"command ID processed: {m}")
             clientID = tokens[1]
             # 필터링된 키워드 체크
             if any(keyword in clientID for keyword in filtered_keywords):
-                cs.send("에러_필터링_지정_단어는_ID_사용_불가_Q_입력_후_재접속_제안".encode())
+                matched_keywords = [keyword for keyword in filtered_keywords if keyword in clientID]
+                # 매칭된 키워드 목록으로 에러 메시지 구성
+                error_message = "Filtered keywords: " + ", ".join(matched_keywords)
+                send_c_res(cs, status="Error", action="Client_input_Error", message=f"{error_message}_Please press Q to exit and try again")
                 return True
 
             else:
@@ -41,12 +45,12 @@ def msg_proc(cs, m):
                 # ID 등록 및 클라이언트 소켓과 ID 매핑
                 clientSockets[clientID] = cs
                 clientIDs[cs] = clientID
-                cs.send("Success:Reg_ID".encode())
+                send_c_res(cs, status="Success", action="ID_Registration", client_id=clientID)
                 return True
 
 
         elif (code.upper() == "TO"):
-            print(f"TO command processed: {m}")
+            print(f"command TO processed: {m}")
             fromID = tokens[1]
             toID = tokens[2]
             toMsg = tokens[3]
@@ -59,10 +63,9 @@ def msg_proc(cs, m):
             # 필터링된 메시지를 수신자에게 전송
                 toSocket = clientSockets[toID]
                 toSocket.send(f"TO:{fromID}:{toMsg}".encode())
-                cs.send("Success:1to1".encode())
+                send_c_res(cs, status="Success", action="1to1", message=f"TO:{fromID}_Message_sent:{toMsg}")
             else:
-                # 존재하지 않는 수신자에 대한 오류 메시지 전송
-                cs.send(f"Error:RecipientNotFound_{toID}".encode())
+                send_c_res(cs, status="Error", action="Recipient_Not_Found", message=f"Recipient_{toID}_not_found")
             return True
 
         elif (code.upper() == "BR"):
@@ -71,7 +74,7 @@ def msg_proc(cs, m):
             toMsg = tokens[2]
             for toID, socket in clientSockets.items():
                 # 수신자별 필터링 적용
-                if toID in filter_keywords:
+                if toID in filtered_keywords:  # 임시 저장 공간 변경
                     filteredMsg = filter_message(toMsg, filter_keywords[toID])
                 else:
                     filteredMsg = toMsg
@@ -79,74 +82,86 @@ def msg_proc(cs, m):
                 socket.send(f"BR:{fromID}:{filteredMsg}".encode())
             # 발신자에게 브로드캐스트 성공 메시지 전송
             if cs in clientSockets.values():
-                cs.send("Success:BR".encode())
-
+                send_c_res(cs, status="Success", action="Broadcast", message="Broadcast_completed_successfully")
             return True
 
         elif (code.upper() == "FILTER"):
-            print(f"Processing FILTER command: {m}")  # FILTER 명령 처리 로그
+            print(f"command FILTER processed: {m}")  # FILTER 명령 처리 로그
             fromID = tokens[1]
             keyword = tokens[2]
             # 클라이언트 ID 확인
             actualID = clientIDs.get(cs)  # 현재 소켓에 연결된 실제 클라이언트 ID
             if actualID != fromID:
-                cs.send("에러_본인_ID만_사용_가능ID".encode())
-                print(f"Unauthorized ID usage attempt: {fromID}")
+                send_c_res(cs, status="Error", action="Other_user_ID_value", message=f"Only_own_ID_can_be_used")
+                print(f"Other_people's_ID_value{fromID}")
                 return True
             # 필터링 키워드 중복 검사
-            if fromID in filter_keywords and filter_keywords[fromID] == keyword:
+            elif keyword in filter_keywords[fromID]:    # 여긴 본인이 지정한 필터가 아니여도 적용
                 # 이미 설정된 필터링 키워드일 경우
-                cs.send(f"에러_이미_필터링_적용된_키워드입니다._{keyword}".encode())
-                print(f"FilterAlreadySet {fromID}: {keyword}")
-            # 필터링 키워드 유효성 검사 (예: 숫자, 문자 유형 등)
-            if not all(char.isalpha() or char.isspace() for char in keyword):
-                cs.send("에러2_한글,영어만 입력해주세요.".encode())
+                send_c_res(cs, status="Error", action="Filter_Already_Set",
+                           message=f"Keyword_already_filtered: {keyword}")
+                print(f"Filter_Already_Set {fromID}: {keyword}")
                 return True
-            # 필터링 키워드 업데이트
-            filter_keywords[fromID].append(keyword)
-            filtered_keywords.add(keyword)  # 여기에 필터링 키워드를 추가
-            print(f"Filter set by {fromID}: {keyword}")  # 필터링 설정 로그
-            success_message = f"Success:Filter_Set_By_{fromID}_Keyword_{keyword}"
-            for socket in clientSockets.values():
-                socket.send(success_message.encode())
+            else:
+                # 필터링 키워드 유효성 검사 (예: 숫자, 문자 유형 등)
+                if not all(char.isalpha() or char.isspace() for char in keyword):
+                    send_c_res(cs, status="Error", action="Invalid_Keyword", message="Please_enter_only_letters")
+                    return True
+                # 필터링 키워드 업데이트
+                filter_keywords[fromID].append(keyword)
+                filtered_keywords.add(keyword)  # 여기에 필터링 키워드를 추가
+                print(f"Filter set by {fromID}: {keyword}")  # 필터링 설정 로그
+                send_c_res(cs, status="Success", action="Filter_Set",
+                       message=f"Filter_set_by_{fromID}_for_keyword_{keyword}")
 
         # FM 명령 처리 부분
         elif code == "FM":
-            if len(tokens) < 4:
-                print("FM 명령 형식이 잘못되었습니다. 다시 시도해주세요.")
-            else:
-                fromID = tokens[1]
-                candidate_old_keyword = tokens[2]
-                new_keyword = tokens[3]
-                # 클라이언트 ID 확인 및 기존 키워드 존재 여부 확인
-                actualID = clientIDs.get(cs)
-                if actualID != fromID:
-                    cs.send("에러_본인_ID만_사용_가능".encode())
-                elif candidate_old_keyword not in filter_keywords[fromID]:
-                    cs.send("에러_해당_필터링_키워드_존재_안함".encode())
-                else:
-                    # 필터링 키워드 유효성 검사
-                    if not all(char.isalpha() or char.isspace() for char in new_keyword):
-                        cs.send("에러2_한글,영어만 입력해주세요.".encode())
-                    else:
-                        # 기존 키워드를 새 키워드로 교체
-                        old_keyword_index = filter_keywords[fromID].index(candidate_old_keyword)
-                        filter_keywords[fromID][old_keyword_index] = new_keyword
-                        cs.send(f"Success:FilterModified_{new_keyword}".encode())
-        elif (code.upper() == "FD"):
+            print(f"command FM processed: {m}")
             fromID = tokens[1]
-            keyword_to_delete = tokens[2]
+            old_keyword = tokens[2]
+            new_keyword = tokens[3]
+            # 클라이언트 ID 확인 및 기존 키워드 존재 여부 확인
+            actualID = clientIDs.get(cs)
+            if actualID != fromID:
+                send_c_res(cs, status="Error", action="Other_user_ID_value", message=f"Only_own_ID_can_be_used")
+                print(f"Other_people's_ID_value{fromID}")
+                return True
+            elif old_keyword not in filtered_keywords:
+                send_c_res(cs, status="Error", action="Keyword_Not_Found", message="filter_keyword_not_found")
+            elif old_keyword not in filter_keywords[fromID]:
+                send_c_res(cs, status="Error", action="Not_your_keywords.", message="Not_a_keyword_you_specified")
+            else:
+                # 필터링 키워드 유효성 검사
+                if not all(char.isalpha() or char.isspace() for char in new_keyword):
+                    send_c_res(cs, status="Error", action="Invalid_Keyword", message="Please_enter_only_letters")
+                    return True
+                else:
+                    # 기존 키워드를 새 키워드로 교체
+                    old_keyword_index = filter_keywords[fromID].index(old_keyword)
+                    filter_keywords[fromID][old_keyword_index] = new_keyword
+                    send_c_res(cs, status="Success", action="Filter_Modified",
+                               message=f"{old_keyword}_Filter_modified_to_{new_keyword}")
+        elif (code.upper() == "FD"):
+            print(f"command FD processed: {m}")
+            fromID = tokens[1]
+            keyword = tokens[2]
 
             # 클라이언트 ID 확인 및 키워드 삭제
             actualID = clientIDs.get(cs)
             if actualID != fromID:
-                cs.send("Error:UnauthorizedAction".encode())
-            elif keyword_to_delete not in filter_keywords[fromID]:
-                cs.send("Error:InvalidFilterDeletion".encode())
+                send_c_res(cs, status="Error", action="Other_user_ID_value", message=f"Only_own_ID_can_be_used")
+                print(f"Other_people's_ID_value{fromID}")
+                return True
+            elif keyword not in filtered_keywords:
+                send_c_res(cs, status="Error", action="Keyword_Not_Found", message="filter_keyword_not_found")
+            elif keyword not in filter_keywords[fromID]:
+                send_c_res(cs, status="Error", action="Not_your_keywords.", message="Not_a_keyword_you_specified")
             else:
                 # 필터링 키워드 삭제
-                filter_keywords[fromID].remove(keyword_to_delete)
-                cs.send(f"Success:FilterDeleted_{keyword_to_delete}".encode())
+                filter_keywords[fromID].remove(keyword)
+                filtered_keywords.remove(keyword)
+                send_c_res(cs, status="Success", action="FilterDeleted",
+                           message=f"Filter keyword deleted: {keyword}")
 
         elif (code.upper() == "QUIT"):
             fromID = tokens[1]
@@ -194,6 +209,15 @@ def client_acpt():
 ta = Thread(target=client_acpt)
 ta.daemon = True
 ta.start()
+
+def create_c_res(**kwargs):
+    response_parts = [f"{key}={value}" for key, value in kwargs.items() if value is not None]
+    return ';'.join(response_parts)
+
+def send_c_res(cs, **kwargs):
+    response = create_c_res(**kwargs)
+    cs.send(response.encode())
+
 
 msg = input()
 if msg.upper() == "Q":
