@@ -196,7 +196,7 @@ def msg_proc(cs, m):
                 # 집합이 비어있는 경우, 에러 메시지 전송
                 send_c_res(cs, status="Error", action="No_Filters", message="No_filters_set")
                 return True
-        elif (code.upper() == "QUIT"):
+        elif (code.upper() == "Q"):
             fromID = tokens[1]
             # 클라이언트 소켓 및 ID 삭제
             clientSocket = clientSockets.pop(fromID, None)
@@ -210,9 +210,9 @@ def msg_proc(cs, m):
                 for keyword in keywords_to_remove:
                     if all(keyword not in kwds for kwds in filter_keywords.values()):
                         filtered_keywords.discard(keyword)
-                if clientSocket:
-                    clientSocket.close()
-                print("Disconnected: {}", fromID)
+            if clientSocket:
+                clientSocket.close()
+            print("Disconnected: {}", fromID)
             return False
 
     except Exception as e:
@@ -263,7 +263,6 @@ def create_c_res(**kwargs):
 def send_c_res(cs, **kwargs):
     response = create_c_res(**kwargs)
     cs.send(response.encode())
-
 
 msg = input()
 if msg.upper() == "Q":

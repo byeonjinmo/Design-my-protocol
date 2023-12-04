@@ -42,7 +42,7 @@ while True:
         if len(tokens) < 1:
             print("FIRST_SF 명령 형식이 잘못되었습니다. 다시 시도해주세요.")
         else:
-            to_Msg = code  + SEP
+            to_Msg = code + SEP
             s.send(to_Msg.encode())
             break
 
@@ -96,7 +96,7 @@ while True:
             s.send(to_Msg.encode())
 
     elif code.upper() == 'Q':
-        to_Msg = "Quit" + SEP + myID + SEP
+        to_Msg = "Q" + SEP + myID + SEP
         s.send(to_Msg.encode())
         break
     if code.upper() == "SF":
