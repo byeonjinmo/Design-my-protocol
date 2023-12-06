@@ -1,6 +1,6 @@
 # server_thread dictionary exit
 # 클라이언트로 부터 exit 문자열이 올때까지 계속 수신
-# exit 문자열을 수신하면 while 문 탈출하여 연결종료
+# e 문자열을 수신하면 while 문 탈출하여 연결종료
 from socket import *
 from select import *
 from threading import Thread, Event
@@ -12,9 +12,9 @@ PORT = 5001
 BUFSIZE = 1024
 ADDR = (HOST, PORT)
 
-# 연결된 client의 소켓 집합 set of connected client sockets
+# 클라이언트의 ID를 키(key)로, 해당 클라이언트의 소켓 객체를 값(value) / 주로 메시지 전송과 관련된 작업에 사용
 clientSockets = {}
-# 각 소켓에 대한 클라이언트 ID 저장
+# 소켓 객체를 키(key)로, 해당 클라이언트의 ID를 값(value) / clientIDs는 클라이언트 관리 및 인증 명확하게 책임분리를 사용하여 유지관리 용이함.
 clientIDs = {}
 # 필터링 키워드 저장 사전 (클라이언트id와 연결되어 저장) 수정 삭제는 본인이 지정한 키워드만 다룰 수 있기 위함
 filter_keywords = defaultdict(list)
