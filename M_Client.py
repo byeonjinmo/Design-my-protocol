@@ -2,7 +2,6 @@
 import socket
 from threading import Thread
 import time
-
 # 반드시 시작FIRST_SF
 # server's IP address
 # if the server is not on this machine,

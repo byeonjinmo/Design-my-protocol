@@ -20,7 +20,6 @@ clientIDs = {}
 filter_keywords = defaultdict(list)
 # 필터링된 키워드 집합 (모든 필터링된 단어의 저장) 그 외의 통신은 누구의 필터링이건 상관없이 적용되야하기 때문에 별도의 필터링 저장 공간 필요
 filtered_keywords = set()
-
 # 필터링 되는 대처 표현
 def filter_message(msg, keyword):
     return msg.replace(keyword, "[****]")
@@ -50,7 +49,7 @@ def msg_proc(cs, m):
                 clientSockets[clientID] = cs
                 clientIDs[cs] = clientID
                 # 서버 코드 예시
-                send_c_res(cs, status="Success", action="ID_Registration", message=f"ID_registration_successful:{clientID}")
+                send_c_res(cs, status="Success", action="ID_Registration", message=f"Hello!_{clientID}!")
 
                 return True
         elif (code.upper() == "TO"):
