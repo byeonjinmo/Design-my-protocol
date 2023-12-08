@@ -27,7 +27,7 @@ def msg_proc(cs, m):
             cs.send("Success:Reg_ID".encode())
             return True
         elif (code.upper()  == "TO"):        
-            fromID = tokens[1]
+            fromID = tokens[1]q
             toID = tokens[2]
             toMsg = tokens[3]
             print(f"1to1: From {fromID} To {toID} Message {toMsg}") 
