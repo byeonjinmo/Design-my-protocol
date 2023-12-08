@@ -20,7 +20,8 @@ clientIDs = {}
 filter_keywords = defaultdict(list)
 # 필터링된 키워드 집합 (모든 필터링된 단어의 저장) 그 외의 통신은 누구의 필터링이건 상관없이 적용되야하기 때문에 별도의 필터링 저장 공간 필요
 filtered_keywords = set()
-
+# 필터링 언어 사용 횟수를 추적하기 위한 사전
+filter_usage_count = defaultdict(int)
 # 필터링 되는 대처 표현
 def filter_message(msg, keyword):
     return msg.replace(keyword, "[****]")
@@ -225,14 +226,43 @@ def client_com(cs):
             return
         try:  # 아래 문장 무조건 실행
             msg = cs.recv(BUFSIZE).decode()
+            if not msg:  # 클라이언트가 연결을 비정상적으로 종료했을 경우 빈 문자열을 받음
+                raise ConnectionError("Client disconnected unexpectedly")
             print('recieve data : ',msg)
         except Exception as e:  # 위 문장 에러 처리: client no longer connected
-            print(f"Error:{e}")
-            clientSockets.pop(cs)
+            print(f"Error or disconnect: {e}")
+            handle_client_exit(cs)  # 클라이언트 종료 처리 함수 호출
+            break
         else:  # recv 성공하면 메시지 처리
             if (msg_proc(cs, msg) == False):
                 break  # 클라이언트가 종료하면 루프 탈출 후 스레드 종료
 
+
+def handle_client_exit(cs):
+    """
+    클라이언트의 비정상 종료를 처리하는 함수.
+    이 함수는 클라이언트 소켓 객체(cs)를 인자로 받아,
+    해당 클라이언트와 관련된 모든 데이터를 정리한다.
+    """
+    # clientIDs 사전에서 클라이언트의 ID를 찾아 삭제
+    clientID = clientIDs.pop(cs, None)
+
+    if clientID:
+        # clientSockets 사전에서 클라이언트의 소켓 객체를 삭제
+        clientSockets.pop(clientID, None)
+
+        # 필터링 키워드 삭제
+        if clientID in filter_keywords:
+            # 클라이언트가 설정한 모든 필터링 키워드를 가져와 삭제
+            keywords_to_remove = filter_keywords.pop(clientID, [])
+            for keyword in keywords_to_remove:
+                # 해당 키워드가 다른 클라이언트에 의해 사용되지 않는 경우에만 filtered_keywords에서 제거
+                if all(keyword not in kwds for kwds in filter_keywords.values()):
+                    filtered_keywords.discard(keyword)
+
+        print(f"Cleaned up resources for disconnected client: {clientID}")
+    else:
+        print("Client ID not found for the given socket.")
 def client_acpt():
     # 소켓 생성
     global serverSocket

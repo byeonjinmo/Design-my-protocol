@@ -7,7 +7,7 @@ import time
 # server's IP address
 # if the server is not on this machine,
 # put the private (network) IP address (e.g 192.168.1.2)
-SERVER_HOST = "198.45.62.1"
+SERVER_HOST = "127.0.0.1"
 SERVER_PORT = 5001 # server's port
 BUF_SIZE = 1024
 SEP = ":" # we will use this to separate the client name & message
