@@ -19,13 +19,44 @@ print(f"[*] Connecting to {SERVER_HOST}:{SERVER_PORT}...")
 s.connect((SERVER_HOST, SERVER_PORT))
 print("[+] Connected.")
 
+# 이 변수는 사용자가 ID를 성공적으로 등록했는지 여부를 추적합니다.
+id_registered = False
+def parse_custom_response(response):
+    parsed_data = {}
+    elements = response.split(";")
+    for element in elements:
+        if "=" in element:
+            key, value = element.split("=")
+            parsed_data[key] = value
+        else:
+            print(f"Unexpected format: {element}")
+    return parsed_data
+
 def listen_for_messages():
+    global id_registered
     while True:
         try:
             message = s.recv(BUF_SIZE).decode()
-            print("\n" + message)
+            if message == "":
+                print("서버로부터 연결이 끊어졌습니다.")
+                break
+
+            if ";" in message:
+                parsed_response = parse_custom_response(message)
+
+                status = parsed_response.get("status", "Unknown status")
+                action = parsed_response.get("action", "No action")
+                additional_message = parsed_response.get("message", "No additional message provided")
+
+                if status == "Success" and action == "ID_Registration":
+                    id_registered = True
+
+                print(f"Status: {status}, Action: {action}, Message: {additional_message}")
+            else:
+                print(message)
         except Exception as e:
-            print(f"Error:{e}")
+            print(f"Error: {e}")
+            break
 
 # make a thread that listens for messages to this client
 t = Thread(target=listen_for_messages)
@@ -53,9 +84,7 @@ while True:
     myID = input("Enter your ID: ")
     to_Msg = "ID" + SEP + myID + SEP
     s.send(to_Msg.encode())
-    # 성공 메시지를 확인하고 루프 탈출
-    if "Success:Reg_ID":
-        break
+    break
 while True:
     msg =  input()
     tokens = msg.split(SEP)
@@ -66,6 +95,15 @@ while True:
             print("BR 명령 형식이 잘못되었습니다. 다시 시도해주세요.")
         else:
             to_Msg = code + SEP + tokens[1] + SEP
+            s.send(to_Msg.encode())
+    elif code.upper() == "ID":
+        if len(tokens) < 2:
+            print("ID 명령 형식이 잘못되었습니다. 다시 시도해주세요.")
+        elif id_registered:
+                print("You have already registered your ID. No need to register again.")
+                continue
+        else:
+            to_Msg = "ID" + SEP + tokens[1] + SEP
             s.send(to_Msg.encode())
 
     elif code.upper() == "TO":
@@ -108,28 +146,6 @@ while True:
             s.send(to_Msg.encode())
 
     to_Msg = ''  # Initialization
-
-def parse_custom_response(response):
-    parsed_data = {}
-    elements = response.split(";")
-    for element in elements:
-        key, value = element.split("=")
-        parsed_data[key] = value
-    return parsed_data
-
-def listen_for_messages():
-    while True:
-        message = s.recv(BUF_SIZE).decode()
-        parsed_response = parse_custom_response(message)
-
-        # 파싱된 응답에서 정보 추출
-        status = parsed_response.get("status")
-        action = parsed_response.get("action")
-        additional_message = parsed_response.get("message")
-
-        # 화면에 출력
-        print(f"Status: {status}, Action: {action}, Message: {additional_message}")
-
 
 # close the socket
 s.close()

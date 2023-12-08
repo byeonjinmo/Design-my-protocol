@@ -20,8 +20,7 @@ clientIDs = {}
 filter_keywords = defaultdict(list)
 # 필터링된 키워드 집합 (모든 필터링된 단어의 저장) 그 외의 통신은 누구의 필터링이건 상관없이 적용되야하기 때문에 별도의 필터링 저장 공간 필요
 filtered_keywords = set()
-# 필터링 언어 사용 횟수를 추적하기 위한 사전
-filter_usage_count = defaultdict(int)
+
 # 필터링 되는 대처 표현
 def filter_message(msg, keyword):
     return msg.replace(keyword, "[****]")
@@ -38,7 +37,7 @@ def msg_proc(cs, m):
                 matched_keywords = [keyword for keyword in filtered_keywords if keyword in clientID]
                 # 매칭된 키워드 목록으로 에러 메시지 구성
                 error_message = "Filtered_keywords: " + ", ".join(matched_keywords)
-                send_c_res(cs, status="Error", action="Client_input_Error", message=f"{error_message}_Please press Q to exit and try again")
+                send_c_res(cs, status="Error", action="Client_input_Error", message=f"{error_message}_ Please_enter_the_ID:yourID_command_again")
                 return True
             # 중복 아이디 방지
             elif clientID in clientSockets:
@@ -50,7 +49,9 @@ def msg_proc(cs, m):
                 # ID 등록 및 클라이언트 소켓과 ID 매핑
                 clientSockets[clientID] = cs
                 clientIDs[cs] = clientID
-                send_c_res(cs, status="Success", action="ID_Registration", client_id=clientID)
+                # 서버 코드 예시
+                send_c_res(cs, status="Success", action="ID_Registration", message=f"ID_registration_successful:{clientID}")
+
                 return True
         elif (code.upper() == "TO"):
             print(f"command TO processed: {m}")
