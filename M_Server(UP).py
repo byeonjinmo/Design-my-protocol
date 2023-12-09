@@ -107,12 +107,13 @@ def msg_proc(cs, m):
                 # 필터링 키워드 유효성 검사 (예: 숫자, 문자 유형 등)
                 if not all(char.isalpha() or char.isspace() for char in keyword):
                     send_c_res(cs, status="Error", action="Invalid_Keyword", message="Please_enter_only_letters")
-                # 필터링 키워드 업데이트
-                filter_keywords[fromID].append(keyword)
-                filtered_keywords.add(keyword)  # 여기에 필터링 키워드를 추가
-                print(f"Filter set by {fromID}: {keyword}")  # 필터링 설정 로그
-                send_c_res(cs, status="Success", action="Filter_Set",
-                       message=f"Filter_set_by_{fromID}_for_keyword_{keyword}")
+                else:
+                    # 유효한 필터링 키워드인 경우에만 업데이트
+                    filter_keywords[fromID].append(keyword)
+                    filtered_keywords.add(keyword)  # 여기에 필터링 키워드를 추가
+                    print(f"Filter set by {fromID}: {keyword}")  # 필터링 설정 로그
+                    send_c_res(cs, status="Success", action="Filter_Set",
+                               message=f"Filter_set_by_{fromID}_for_keyword_{keyword}")
 
         # FM 명령 처리 부분
         elif code == "FM":
