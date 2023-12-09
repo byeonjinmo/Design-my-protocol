@@ -8,7 +8,7 @@ import time
 # put the private (network) IP address (e.g 192.168.1.2)
 SERVER_HOST = "127.0.0.1"
 SERVER_PORT = 5001 # server's port
-BUF_SIZE = 1024
+BUF_SIZE = 1024 # 버퍼 크기
 SEP = ":" # we will use this to separate the client name & message
 
 # initialize TCP socket
@@ -18,9 +18,10 @@ print(f"[*] Connecting to {SERVER_HOST}:{SERVER_PORT}...")
 s.connect((SERVER_HOST, SERVER_PORT))
 print("[+] Connected.")
 
-# 이 변수는 사용자가 ID를 성공적으로 등록했는지 여부를 추적합니다.
+# 사용자가 ID를 성공적으로 등록했는지 여부를 확인
 id_registered = False
 def parse_custom_response(response):
+    # 서버로부터 받은 응답을 해석
     parsed_data = {}
     elements = response.split(";")
     for element in elements:
@@ -32,6 +33,7 @@ def parse_custom_response(response):
     return parsed_data
 
 def listen_for_messages():
+    # 서버로부터 메시지를 수신하고 처리하는 함수 별도의 스레드에서 실행됨.
     global id_registered
     while True:
         try:
@@ -43,9 +45,9 @@ def listen_for_messages():
             if ";" in message:
                 parsed_response = parse_custom_response(message)
 
-                status = parsed_response.get("status", "Unknown status")
-                action = parsed_response.get("action", "No action")
-                additional_message = parsed_response.get("message", "No additional message provided")
+                status = parsed_response.get("status", "Unknown_status")
+                action = parsed_response.get("action", "No_action")
+                additional_message = parsed_response.get("message", "No_additional_message_provided")
 
                 if status == "Success" and action == "ID_Registration":
                     id_registered = True
@@ -57,20 +59,21 @@ def listen_for_messages():
             print(f"Error: {e}")
             break
 
+# 서버로부터 메시지를 듣는 스레드를 생성 및 시작
 # make a thread that listens for messages to this client
 t = Thread(target=listen_for_messages)
 # make the thread daemon so it ends whenever the main thread ends
 t.daemon = True
 # start the thread
 t.start()
-# register of my ID to the Server
+# 사용자로부터 명령어를 입력받아 서버에 전송하는 메인 루프 / Q 누르기 전까지 소켓 지속.
 while True:
     print("필터링 설정된 단어가 있을 수 있습니다.먼저 FIRST_SF(SHOW_FILTER_KEYWORD)를 입력하여 확인해주세요.")
     msg = input()
     tokens = msg.split(SEP)
     code = tokens[0]
     if code.upper() == "FIRST_SF":
-        if len(tokens) < 1:
+        if len(tokens) < 1 or len(tokens) > 1:
             print("FIRST_SF 명령 형식이 잘못되었습니다. 다시 시도해주세요.")
         else:
             to_Msg = code + SEP
@@ -90,44 +93,44 @@ while True:
     code = tokens[0]
     # 명령어별 입력 형식 검증
     if code.upper() == "BR":
-        if len(tokens) < 2:
+        if len(tokens) < 2 or len(tokens) > 2:
             print("BR 명령 형식이 잘못되었습니다. 다시 시도해주세요.")
         else:
             to_Msg = code + SEP + tokens[1] + SEP
             s.send(to_Msg.encode())
     elif code.upper() == "ID":
-        if len(tokens) < 2:
+        if len(tokens) < 2 or len(tokens) > 2:
             print("ID 명령 형식이 잘못되었습니다. 다시 시도해주세요.")
         elif id_registered:
-                print("You have already registered your ID. No need to register again.")
+                print("You_already_have_a_username._You_cannot_use_the_ID_command_again.")
                 continue
         else:
             to_Msg = "ID" + SEP + tokens[1] + SEP
             s.send(to_Msg.encode())
 
     elif code.upper() == "TO":
-        if len(tokens) < 3:
+        if len(tokens) < 3 or len(tokens) > 3:
             print("TO 명령 형식이 잘못되었습니다. 다시 시도해주세요.")
         else:
             to_Msg = code + SEP + myID + SEP + tokens[1] + SEP + tokens[2] + SEP
             s.send(to_Msg.encode())
 
     elif code == "FILTER":
-        if len(tokens) < 3:
+        if len(tokens) < 3 or len(tokens) > 3:
             print("FILTER 명령 형식이 잘못되었습니다. 다시 시도해주세요.")
         else:
             to_Msg = code + SEP + tokens[1] + SEP + tokens[2] + SEP
             s.send(to_Msg.encode())
 
     elif code == "FM":
-        if len(tokens) < 4:
+        if len(tokens) < 4 or len(tokens) > 4:
             print("FM 명령 형식이 잘못되었습니다. 다시 시도해주세요.")
         else:
             to_Msg = code + SEP + tokens[1] + SEP + tokens[2] + SEP + tokens[3] + SEP
             s.send(to_Msg.encode())
 
     elif code == "FD":
-        if len(tokens) < 3:
+        if len(tokens) < 3 or len(tokens) > 3:
             print("FD 명령 형식이 잘못되었습니다. 다시 시도해주세요.")
         else:
             to_Msg = code +  SEP + tokens[1] + SEP + tokens[2] + SEP
@@ -138,7 +141,7 @@ while True:
         s.send(to_Msg.encode())
         break
     if code.upper() == "SF":
-        if len(tokens) < 2:
+        if len(tokens) < 2 or len(tokens) > 2:
             print("SF 명령 형식이 잘못되었습니다. 다시 시도해주세요.")
         else:
             to_Msg = code + SEP + tokens[1] + SEP
