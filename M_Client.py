@@ -2,14 +2,14 @@
 import socket
 from threading import Thread
 import time
-# 반드시 시작FIRST_SF
+# 반드시 시작 시 FIRST_SF
 # server's IP address
 # if the server is not on this machine,
 # put the private (network) IP address (e.g 192.168.1.2)
 SERVER_HOST = "127.0.0.1"
-SERVER_PORT = 5001 # server's port
+SERVER_PORT = 5001 # 서버 포트
 BUF_SIZE = 1024 # 버퍼 크기
-SEP = ":" # we will use this to separate the client name & message
+SEP = ":" # 구분자
 
 # initialize TCP socket
 s = socket.socket()
@@ -20,8 +20,8 @@ print("[+] Connected.")
 
 # 사용자가 ID를 성공적으로 등록했는지 여부를 확인
 id_registered = False
+# 서버로부터 받은 응답을 해석
 def parse_custom_response(response):
-    # 서버로부터 받은 응답을 해석
     parsed_data = {}
     elements = response.split(";")
     for element in elements:
@@ -31,9 +31,8 @@ def parse_custom_response(response):
         else:
             print(f"Unexpected format: {element}")
     return parsed_data
-
+# 서버로부터 메시지를 수신하고 처리하는 함수 별도의 스레드에서 실행됨.
 def listen_for_messages():
-    # 서버로부터 메시지를 수신하고 처리하는 함수 별도의 스레드에서 실행됨.
     global id_registered
     while True:
         try:
@@ -60,11 +59,8 @@ def listen_for_messages():
             break
 
 # 서버로부터 메시지를 듣는 스레드를 생성 및 시작
-# make a thread that listens for messages to this client
 t = Thread(target=listen_for_messages)
-# make the thread daemon so it ends whenever the main thread ends
 t.daemon = True
-# start the thread
 t.start()
 # 사용자로부터 명령어를 입력받아 서버에 전송하는 메인 루프 / Q 누르기 전까지 소켓 지속.
 while True:
@@ -81,7 +77,6 @@ while True:
             break
 
 while True:
-    # input message we want to send to the server
     time.sleep(1)  # 1초 대기
     myID = input("Enter your ID: ")
     to_Msg = "ID" + SEP + myID + SEP
@@ -147,7 +142,7 @@ while True:
             to_Msg = code + SEP + tokens[1] + SEP
             s.send(to_Msg.encode())
 
-    to_Msg = ''  # Initialization
+    to_Msg = ''  # 초기화
 
-# close the socket
+# 소켓 종료
 s.close()
