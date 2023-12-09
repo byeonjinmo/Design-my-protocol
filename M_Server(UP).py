@@ -11,7 +11,7 @@ HOST = ''
 PORT = 5001
 BUFSIZE = 1024
 ADDR = (HOST, PORT)
-
+# 서버에서 관리하는 다양한 자료 구조들
 # 클라이언트의 ID를 키(key)로, 해당 클라이언트의 소켓 객체를 값(value) / 주로 메시지 전송과 관련된 작업에 사용
 clientSockets = {}
 # 소켓 객체를 키(key)로, 해당 클라이언트의 ID를 값(value) / clientIDs는 클라이언트 관리 및 인증 명확하게 책임분리를 사용하여 유지관리 용이함.
@@ -260,9 +260,9 @@ def handle_client_exit(cs):
                 if all(keyword not in kwds for kwds in filter_keywords.values()):
                     filtered_keywords.discard(keyword)
 
-        print(f"Cleaned up resources for disconnected client: {clientID}")
+        print(f"Cleaned_up_resources_for_disconnected_client_{clientID}")
     else:
-        print("Client ID not found for the given socket.")
+        print("Client_ID_not_found_for_the_given_socket.")
 def client_acpt():
     # 소켓 생성
     global serverSocket
