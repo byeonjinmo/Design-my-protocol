@@ -142,6 +142,11 @@ def msg_proc(cs, m):
                     # 기존 키워드를 새 키워드로 교체
                     old_keyword_index = filter_keywords[fromID].index(old_keyword)
                     filter_keywords[fromID][old_keyword_index] = new_keyword
+
+                    # filtered_keywords 집합도 업데이트
+                    filtered_keywords.discard(old_keyword)  # 기존 키워드 제거
+                    filtered_keywords.add(new_keyword)  # 새 키워드 추가
+
                     send_c_res(cs, status="Success", action="Filter_Modified",
                                message=f"{old_keyword}_Filter_modified_to_{new_keyword}")
         elif (code.upper() == "FD"):
